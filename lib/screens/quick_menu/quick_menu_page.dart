@@ -121,6 +121,46 @@ class _QuickMenuPageState extends State<QuickMenuPage> {
     }
   }
 
+  void _showDeleteConfirmation(QuickMenuItem item) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            'Remove Item',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          ),
+          content: Text(
+            'Are you sure you want to remove "${item.menuItem?.name}" from the quick menu?',
+            style: GoogleFonts.poppins(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _removeFromQuickMenu(item);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: Text(
+                'Remove',
+                style: GoogleFonts.poppins(),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart = Provider.of<CartProvider>(context);
@@ -213,7 +253,8 @@ class _QuickMenuPageState extends State<QuickMenuPage> {
                   (cartItem) => cartItem.menuItem.id == item.menuItem!.id,
                   orElse: () => CartItem(menuItem: item.menuItem!),
                 );
-                final inCart = cartItem != null;
+                final inCart =
+                    cart.items.any((i) => i.menuItem.id == item.menuItem!.id);
                 final quantity = inCart ? cartItem.quantity : 0;
 
                 return Card(
@@ -221,16 +262,12 @@ class _QuickMenuPageState extends State<QuickMenuPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
+                  // Highlight the card if it's in the cart
+                  color: inCart ? Colors.orange.shade50 : null,
                   child: InkWell(
                     onTap: () {
                       // Add item to cart
                       cart.addItem(item.menuItem!);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${item.menuItem!.name} added to cart'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Stack(
@@ -303,25 +340,64 @@ class _QuickMenuPageState extends State<QuickMenuPage> {
                             ),
                           ),
                         ),
-                        // Cart quantity indicator
+                        // Quantity controls if item is in cart
                         if (inCart)
                           Positioned(
-                            top: 4,
-                            left: 4,
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
+                              height: 36,
                               decoration: BoxDecoration(
                                 color: Theme.of(context).primaryColor,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '$quantity',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                                borderRadius: const BorderRadius.vertical(
+                                  bottom: Radius.circular(8),
                                 ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  // Decrease quantity button
+                                  IconButton(
+                                    onPressed: () {
+                                      if (quantity > 1) {
+                                        cart.updateQuantity(
+                                            item.menuItem!.id, quantity - 1);
+                                      } else {
+                                        cart.removeItem(item.menuItem!.id);
+                                      }
+                                    },
+                                    icon: const Icon(
+                                      Icons.remove,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                  // Quantity display
+                                  Text(
+                                    quantity.toString(),
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  // Increase quantity button
+                                  IconButton(
+                                    onPressed: () {
+                                      cart.addItem(item.menuItem!);
+                                    },
+                                    icon: const Icon(
+                                      Icons.add,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -334,58 +410,18 @@ class _QuickMenuPageState extends State<QuickMenuPage> {
           ),
         ],
       ),
-      // Floating action button to view cart
-      floatingActionButton: cart.isEmpty
-          ? null
-          : FloatingActionButton.extended(
+      floatingActionButton: cart.itemCount > 0
+          ? FloatingActionButton.extended(
               onPressed: _navigateToCart,
-              icon: const Icon(Icons.shopping_cart),
+              icon: const Icon(Icons.shopping_cart_checkout),
               label: Text(
-                'View Cart (${cart.totalQuantity})',
+                'Checkout (${cart.totalQuantity})',
                 style: GoogleFonts.poppins(),
               ),
               backgroundColor: Theme.of(context).primaryColor,
-            ),
-    );
-  }
-
-  Future<void> _showDeleteConfirmation(QuickMenuItem item) async {
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Remove Item',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-          ),
-          content: Text(
-            'Remove "${item.menuItem?.name}" from Quick Menu?',
-            style: GoogleFonts.poppins(),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.poppins(),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _removeFromQuickMenu(item);
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
-              child: Text(
-                'Remove',
-                style: GoogleFonts.poppins(),
-              ),
-            ),
-          ],
-        );
-      },
+              foregroundColor: Colors.white,
+            )
+          : null,
     );
   }
 }

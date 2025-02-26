@@ -8,6 +8,7 @@ import '../../models/credit_customer.dart';
 import '../../services/order_service.dart';
 import '../../services/customer_service.dart';
 import 'order_details_screen.dart';
+import '../../services/pdf_service.dart';
 
 class OrdersPage extends StatefulWidget {
   final String canteenId;
@@ -22,6 +23,7 @@ class _OrdersPageState extends State<OrdersPage> {
   final OrderService _orderService = OrderService(Supabase.instance.client);
   final CustomerService _customerService =
       CustomerService(Supabase.instance.client);
+  final PdfService _pdfService = PdfService();
 
   List<Order> _orders = [];
   List<Customer> _customers = [];
@@ -206,6 +208,33 @@ class _OrdersPageState extends State<OrdersPage> {
     );
   }
 
+  Future<void> _printOrdersReport() async {
+    if (_filteredOrders.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No orders to print')),
+      );
+      return;
+    }
+
+    try {
+      await _pdfService.generateOrdersReport(
+        orders: _filteredOrders,
+        canteenName:
+            'SpiceTap Canteen', // You might want to get this from your app state
+        startDate:
+            _startDate ?? DateTime.now().subtract(const Duration(days: 7)),
+        endDate: _endDate ?? DateTime.now(),
+      );
+    } catch (e) {
+      print('Error generating PDF: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating PDF: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -221,6 +250,11 @@ class _OrdersPageState extends State<OrdersPage> {
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,
             tooltip: 'Refresh',
+          ),
+          IconButton(
+            onPressed: _printOrdersReport,
+            icon: const Icon(Icons.print),
+            tooltip: 'Print Orders Report',
           ),
         ],
       ),

@@ -7,6 +7,7 @@ import '../../main.dart'
 import '../menu/menu_page.dart';
 import '../quick_menu/quick_menu_page.dart';
 import '../customers/customers_page.dart';
+import '../orders/orders_page.dart'; // Import the Orders page
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -15,7 +16,8 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState extends State<DashboardPage>
+    with AutomaticKeepAliveClientMixin {
   bool _isExpanded = true;
   int _selectedIndex = 0;
   String _userName = '';
@@ -23,10 +25,13 @@ class _DashboardPageState extends State<DashboardPage> {
   String _canteenId = '';
   bool _isLoading = true;
 
+  // Add this to implement AutomaticKeepAliveClientMixin
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
-    _selectedIndex = 0;
     _loadInitialData();
   }
 
@@ -34,6 +39,7 @@ class _DashboardPageState extends State<DashboardPage> {
     await Future.wait([
       _loadUserData(),
       _loadCanteenId(),
+      _loadSelectedTab(),
     ]);
     if (mounted) {
       setState(() {
@@ -61,11 +67,38 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Future<void> _loadSelectedTab() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _selectedIndex = prefs.getInt('selectedTabIndex') ?? 0;
+      });
+    }
+  }
+
+  Future<void> _saveSelectedTab(int index) async {
+    if (_selectedIndex == index) return; // Skip if already selected
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('selectedTabIndex', index);
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  // Create a map to cache content widgets
+  final Map<int, Widget> _cachedContent = {};
+
   final List<NavigationItem> _navigationItems = [
     NavigationItem(
       title: 'Quick Menu',
       icon: Icons.dashboard_rounded,
       selectedIcon: Icons.dashboard,
+    ),
+    NavigationItem(
+      title: 'Orders', // Add Orders tab
+      icon: Icons.receipt_outlined,
+      selectedIcon: Icons.receipt,
     ),
     NavigationItem(
       title: 'Menu',
@@ -99,25 +132,44 @@ class _DashboardPageState extends State<DashboardPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // Return cached widget if available
+    if (_cachedContent.containsKey(_selectedIndex)) {
+      return _cachedContent[_selectedIndex]!;
+    }
+
+    // Create and cache the widget
+    Widget content;
     switch (_selectedIndex) {
       case 0:
-        return QuickMenuPage(canteenId: _canteenId);
+        content = QuickMenuPage(canteenId: _canteenId);
+        break;
       case 1:
-        return MenuPage(canteenId: _canteenId);
+        content = OrdersPage(canteenId: _canteenId); // Add Orders page
+        break;
       case 2:
-        return CustomersPage(canteenId: _canteenId);
+        content = MenuPage(canteenId: _canteenId);
+        break;
+      case 3:
+        content = CustomersPage(canteenId: _canteenId);
+        break;
       default:
-        return Center(
+        content = Center(
           child: Text(
             _navigationItems[_selectedIndex].title,
             style: GoogleFonts.poppins(fontSize: 24),
           ),
         );
     }
+
+    // Cache the content
+    _cachedContent[_selectedIndex] = content;
+    return content;
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
     return Scaffold(
       body: Row(
         children: [
@@ -191,9 +243,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                                 )
                               : null,
-                          onTap: () {
-                            setState(() => _selectedIndex = index);
-                          },
+                          onTap: () => _saveSelectedTab(index),
                         );
                       },
                     ),
@@ -251,6 +301,12 @@ class _DashboardPageState extends State<DashboardPage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _cachedContent.clear();
+    super.dispose();
   }
 
   Future<void> handleLogout() async {

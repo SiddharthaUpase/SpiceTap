@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/auth/auth_page.dart';
 import 'screens/dashboard/dashboard_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'providers/cart_provider.dart';
 
 // Add these constants at the top of the file
 const String tokenKey = 'session_token';
@@ -78,7 +80,14 @@ void main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGdraGVoZmtzaGF6b3l1Znh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyNTU5MjcsImV4cCI6MjA1NTgzMTkyN30.XTHoMgx9cP-8VJag5Cab3v7di-eGnRrbImyxxKshOZQ',
   );
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 final _router = GoRouter(

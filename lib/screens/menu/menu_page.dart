@@ -5,6 +5,7 @@ import '../../models/menu_models.dart';
 import '../../services/menu_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'add_category_dialog.dart';
+import '../../services/quick_menu_service.dart';
 
 class MenuPage extends StatefulWidget {
   final String canteenId;
@@ -17,6 +18,8 @@ class MenuPage extends StatefulWidget {
 
 class _MenuPageState extends State<MenuPage> {
   final MenuService _menuService = MenuService(Supabase.instance.client);
+  final QuickMenuService _quickMenuService =
+      QuickMenuService(Supabase.instance.client);
 
   // Add a ScrollController for horizontal scrolling
   final ScrollController _horizontalScrollController = ScrollController();
@@ -29,6 +32,9 @@ class _MenuPageState extends State<MenuPage> {
   final TextEditingController _searchController = TextEditingController();
   MenuCategory? _selectedCategory;
   String _searchQuery = '';
+
+  // Add a list to track items selected for quick menu
+  List<MenuItem> _selectedForQuickMenu = [];
 
   @override
   void initState() {
@@ -283,46 +289,85 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   Future<void> _addDebugItems() async {
-    final items = [
-      ('Samosa', 'Crispy pastry with spiced potatoes', 12.0),
-      ('Vada Pav', 'Mumbai style burger', 15.0),
-      ('Poha', 'Flattened rice breakfast', 20.0),
-      ('Pani Puri', 'Crispy shells with spicy water', 25.0),
-      ('Dosa', 'South Indian crepe', 40.0),
-      ('Idli', 'Steamed rice cakes', 30.0),
-      ('Upma', 'Semolina breakfast', 25.0),
-      ('Pakora', 'Vegetable fritters', 15.0),
-      ('Bhel Puri', 'Puffed rice snack', 20.0),
-      ('Misal Pav', 'Spicy curry with bread', 35.0),
-      ('Chai', 'Indian tea', 10.0),
-      ('Coffee', 'Filter coffee', 15.0),
-      ('Lassi', 'Yogurt drink', 25.0),
-      ('Butter Chicken', 'Creamy chicken curry', 180.0),
-      ('Paneer Tikka', 'Grilled cottage cheese', 120.0),
-      ('Biryani', 'Fragrant rice dish', 150.0),
-      ('Gulab Jamun', 'Sweet milk dumplings', 40.0),
-      ('Rasgulla', 'Bengali sweet', 35.0),
-      ('Jalebi', 'Spiral sweet', 30.0),
-      ('Kheer', 'Rice pudding', 45.0),
-    ];
+    final categoryItems = {
+      'Snacks': [
+        ('Samosa', 'Crispy pastry filled with spiced potatoes and peas', 15.0),
+        ('Vada Pav', 'Mumbai style potato patty burger with chutneys', 20.0),
+        (
+          'Pani Puri',
+          'Crispy puris with spicy mint water and potato filling',
+          30.0
+        ),
+        ('Bhel Puri', 'Puffed rice mixed with chutneys and vegetables', 25.0),
+        ('Pakora', 'Mixed vegetable fritters with mint chutney', 20.0),
+        ('Aloo Tikki', 'Spiced potato patties with chutneys', 25.0),
+        ('Kachori', 'Deep fried spiced lentil balls', 15.0),
+        ('Dabeli', 'Spiced potato filling in bun with chutneys', 20.0),
+        (
+          'Masala Sandwich',
+          'Grilled sandwich with potato and vegetables',
+          30.0
+        ),
+        ('Bread Pakora', 'Bread fritters with potato filling', 20.0),
+      ],
+      'Beverages': [
+        ('Masala Chai', 'Indian spiced tea', 12.0),
+        ('Filter Coffee', 'South Indian style coffee', 15.0),
+        ('Sweet Lassi', 'Sweet yogurt drink', 25.0),
+        ('Mango Lassi', 'Mango flavored yogurt drink', 30.0),
+        ('Butter Milk', 'Spiced churned yogurt drink', 15.0),
+        ('Lemon Soda', 'Fresh lime soda (sweet/salt)', 20.0),
+        ('Mint Chaas', 'Spiced buttermilk with mint', 15.0),
+        ('Rose Milk', 'Chilled milk with rose syrup', 25.0),
+        ('Badam Milk', 'Almond flavored milk', 30.0),
+        ('Ice Tea', 'Chilled tea with lemon', 20.0),
+      ],
+      'Meals': [
+        ('Chole Bhature', 'Chickpea curry with fried bread', 50.0),
+        ('Rajma Chawal', 'Kidney beans curry with rice', 45.0),
+        ('Dal Khichdi', 'Lentil and rice porridge', 40.0),
+        ('Veg Thali', 'Complete meal with roti, rice, dal and sabzi', 60.0),
+        ('Pav Bhaji', 'Spiced vegetable curry with buttered buns', 45.0),
+        ('Dal Makhani', 'Creamy black lentils with rice', 50.0),
+        ('Kadai Paneer', 'Cottage cheese curry with roti', 60.0),
+        ('Veg Biryani', 'Fragrant rice with vegetables', 55.0),
+        ('Masala Dosa', 'Rice crepe with potato filling', 45.0),
+        ('Idli Sambar', 'Steamed rice cakes with lentil soup', 40.0),
+      ],
+      'Desserts': [
+        ('Gulab Jamun', 'Deep fried milk dumplings in sugar syrup', 20.0),
+        ('Rasgulla', 'Bengali sweet dumplings', 20.0),
+        ('Gajar Halwa', 'Carrot pudding (seasonal)', 25.0),
+        ('Jalebi', 'Crispy spiral sweet', 20.0),
+        ('Rice Kheer', 'Rice pudding with nuts', 25.0),
+        ('Rasmalai', 'Cottage cheese dumplings in milk', 30.0),
+        ('Kulfi', 'Indian ice cream', 25.0),
+        ('Besan Ladoo', 'Sweet gram flour balls', 15.0),
+        ('Sooji Halwa', 'Semolina pudding', 20.0),
+        ('Phirni', 'Ground rice pudding', 25.0),
+      ],
+    };
 
     try {
       setState(() => _isLoading = true);
 
       for (var category in _categories) {
-        for (var item in items) {
-          try {
-            final menuItem = await _menuService.createMenuItem(
-              item.$1,
-              item.$3,
-              category.id,
-              widget.canteenId,
-              description: item.$2,
-              isAvailable: true,
-            );
-            _menuItems.add(menuItem);
-          } catch (e) {
-            print('Error adding item ${item.$1}: $e');
+        final items = categoryItems[category.name];
+        if (items != null) {
+          for (var item in items) {
+            try {
+              final menuItem = await _menuService.createMenuItem(
+                item.$1,
+                item.$3,
+                category.id,
+                widget.canteenId,
+                description: item.$2,
+                isAvailable: true,
+              );
+              _menuItems.add(menuItem);
+            } catch (e) {
+              print('Error adding item ${item.$1}: $e');
+            }
           }
         }
       }
@@ -414,6 +459,73 @@ class _MenuPageState extends State<MenuPage> {
     }).toList();
   }
 
+  // Add method to add item to quick menu
+  Future<void> _addToQuickMenu(MenuItem item) async {
+    try {
+      await _quickMenuService.addToQuickMenu(widget.canteenId, item.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${item.name} added to Quick Menu')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding to Quick Menu: $e')),
+        );
+      }
+    }
+  }
+
+  // Add method to add selected items to quick menu
+  Future<void> _addSelectedToQuickMenu() async {
+    if (_selectedForQuickMenu.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No items selected')),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isLoading = true);
+
+      for (var item in _selectedForQuickMenu) {
+        await _quickMenuService.addToQuickMenu(widget.canteenId, item.id);
+      }
+
+      setState(() {
+        _selectedForQuickMenu.clear();
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  '${_selectedForQuickMenu.length} items added to Quick Menu')),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding items to Quick Menu: $e')),
+        );
+      }
+    }
+  }
+
+  // Toggle selection of an item for quick menu
+  void _toggleQuickMenuSelection(MenuItem item) {
+    setState(() {
+      if (_selectedForQuickMenu.any((i) => i.id == item.id)) {
+        _selectedForQuickMenu.removeWhere((i) => i.id == item.id);
+      } else {
+        _selectedForQuickMenu.add(item);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -435,6 +547,26 @@ class _MenuPageState extends State<MenuPage> {
                 ),
               ),
               const Spacer(),
+              // Show quick menu cart if items are selected
+              if (_selectedForQuickMenu.isNotEmpty)
+                Container(
+                  child: ElevatedButton.icon(
+                    onPressed: _addSelectedToQuickMenu,
+                    icon: const Icon(Icons.flash_on),
+                    label: Text(
+                      'Add ${_selectedForQuickMenu.length} to Quick Menu',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 8),
               PopupMenuButton(
                 icon: const Icon(Icons.bug_report),
                 itemBuilder: (context) => [
@@ -518,46 +650,175 @@ class _MenuPageState extends State<MenuPage> {
           ),
         ),
 
-        // Menu items list
+        // Menu items grid
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(8),
+          child: GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4, // 3 items per row
+              childAspectRatio: 0.8, // Square aspect ratio
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
             itemCount: _filteredItems.length,
             itemBuilder: (context, index) {
               final item = _filteredItems[index];
+              final isSelected =
+                  _selectedForQuickMenu.any((i) => i.id == item.id);
+
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: ListTile(
-                  title: Text(
-                    item.name,
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: item.description != null
-                      ? Text(
-                          item.description!,
-                          style: GoogleFonts.poppins(fontSize: 12),
-                        )
-                      : null,
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+                elevation: isSelected ? 3 : 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: isSelected
+                      ? BorderSide(
+                          color: const Color.fromARGB(255, 104, 230, 108),
+                          width: 4)
+                      : BorderSide.none,
+                ),
+                child: InkWell(
+                  onTap: () => _toggleQuickMenuSelection(item),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        '₹${item.basePrice.toStringAsFixed(2)}',
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                      // Image container at the top (60% of height)
+                      Expanded(
+                        flex: 6,
+                        child: Stack(
+                          children: [
+                            // Image
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(8),
+                                ),
+                                image: const DecorationImage(
+                                  image: AssetImage('assets/images/pc.jpg'),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            // Selection indicator
+                            if (isSelected)
+                              Positioned(
+                                top: 8,
+                                left: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).primaryColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            // Action buttons
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: Row(
+                                children: [
+                                  // // Quick add button
+                                  // IconButton(
+                                  //   onPressed: () => _addToQuickMenu(item),
+                                  //   icon: Icon(
+                                  //     Icons.flash_on,
+                                  //     size: 18,
+                                  //     color: Theme.of(context).primaryColor,
+                                  //   ),
+                                  //   style: IconButton.styleFrom(
+                                  //     backgroundColor: Colors.white,
+                                  //     padding: const EdgeInsets.all(4),
+                                  //     minimumSize: const Size(30, 30),
+                                  //   ),
+                                  // ),
+                                  // Edit button
+                                  IconButton(
+                                    onPressed: () => _showEditItemDialog(item),
+                                    icon: const Icon(
+                                      Icons.edit_outlined,
+                                      size: 18,
+                                    ),
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      padding: const EdgeInsets.all(4),
+                                      minimumSize: const Size(30, 30),
+                                    ),
+                                  ),
+                                  // Delete button
+                                  IconButton(
+                                    onPressed: () => _deleteMenuItem(item),
+                                    icon: Icon(
+                                      Icons.delete_outline,
+                                      size: 18,
+                                      color: Colors.red[400],
+                                    ),
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      padding: const EdgeInsets.all(4),
+                                      minimumSize: const Size(30, 30),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Switch(
-                        value: item.isAvailable,
-                        onChanged: (_) => _toggleItemAvailability(item),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined),
-                        onPressed: () => _showEditItemDialog(item),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => _deleteMenuItem(item),
-                        color: Colors.red,
+                      // Text content at the bottom (40% of height)
+                      Expanded(
+                        flex: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.grey[50] : Colors.white,
+                            borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(8),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                item.name,
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '₹${item.basePrice.toStringAsFixed(2)}',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: Colors.deepOrange,
+                                    ),
+                                  ),
+                                  Switch(
+                                    value: item.isAvailable,
+                                    onChanged: (_) =>
+                                        _toggleItemAvailability(item),
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    activeColor: Colors.deepOrange,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),

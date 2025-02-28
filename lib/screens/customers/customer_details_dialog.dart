@@ -4,15 +4,18 @@ import '../../models/customer.dart';
 import '../../models/credit_customer.dart';
 import '../../services/customer_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'custom_prices_tab.dart';
 
 class CustomerDetailsDialog extends StatefulWidget {
   final Customer customer;
   final Function(Customer) onCustomerUpdated;
+  final String canteenId;
 
   const CustomerDetailsDialog({
     super.key,
     required this.customer,
     required this.onCustomerUpdated,
+    required this.canteenId,
   });
 
   @override
@@ -127,15 +130,14 @@ class _CustomerDetailsDialogState extends State<CustomerDetailsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Container(
-        width: 600,
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
+    return DefaultTabController(
+      length: 2,
+      child: Dialog(
+        child: Container(
+          width: 800,
+          height: 600,
+          padding: const EdgeInsets.all(16),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -172,124 +174,152 @@ class _CustomerDetailsDialogState extends State<CustomerDetailsDialog> {
                     ),
                 ],
               ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: _isEditing,
-                validator: (value) =>
-                    value?.isEmpty == true ? 'Name is required' : null,
+              TabBar(
+                tabs: const [
+                  Tab(text: 'Details'),
+                  Tab(text: 'Custom Prices'),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: _isEditing,
-              ),
-              if (widget.customer is CreditCustomer) ...[
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _companyNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Company Name',
-                    border: OutlineInputBorder(),
-                  ),
-                  enabled: _isEditing,
-                  validator: (value) => value?.isEmpty == true
-                      ? 'Company name is required'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _ownerRepNumberController,
-                  decoration: const InputDecoration(
-                    labelText: 'Owner/Representative Number',
-                    border: OutlineInputBorder(),
-                  ),
-                  enabled: _isEditing,
-                  validator: (value) => value?.isEmpty == true
-                      ? 'Owner/Representative number is required'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _creditLimitController,
-                  decoration: const InputDecoration(
-                    labelText: 'Credit Limit',
-                    border: OutlineInputBorder(),
-                    prefixText: '₹ ',
-                  ),
-                  enabled: _isEditing,
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value?.isEmpty == true)
-                      return 'Credit limit is required';
-                    if (double.tryParse(value!) == null) {
-                      return 'Please enter a valid number';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Shop Numbers',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (_isEditing)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _shopNumberController,
-                          decoration: const InputDecoration(
-                            labelText: 'Add Shop Number',
-                            border: OutlineInputBorder(),
-                          ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    SingleChildScrollView(
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Name',
+                                border: OutlineInputBorder(),
+                              ),
+                              enabled: _isEditing,
+                              validator: (value) => value?.isEmpty == true
+                                  ? 'Name is required'
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _phoneController,
+                              decoration: const InputDecoration(
+                                labelText: 'Phone Number',
+                                border: OutlineInputBorder(),
+                              ),
+                              enabled: _isEditing,
+                            ),
+                            if (widget.customer is CreditCustomer) ...[
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _companyNameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Company Name',
+                                  border: OutlineInputBorder(),
+                                ),
+                                enabled: _isEditing,
+                                validator: (value) => value?.isEmpty == true
+                                    ? 'Company name is required'
+                                    : null,
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _ownerRepNumberController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Owner/Representative Number',
+                                  border: OutlineInputBorder(),
+                                ),
+                                enabled: _isEditing,
+                                validator: (value) => value?.isEmpty == true
+                                    ? 'Owner/Representative number is required'
+                                    : null,
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _creditLimitController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Credit Limit',
+                                  border: OutlineInputBorder(),
+                                  prefixText: '₹ ',
+                                ),
+                                enabled: _isEditing,
+                                keyboardType: TextInputType.number,
+                                validator: (value) {
+                                  if (value?.isEmpty == true)
+                                    return 'Credit limit is required';
+                                  if (double.tryParse(value!) == null) {
+                                    return 'Please enter a valid number';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Shop Numbers',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (_isEditing)
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: _shopNumberController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Add Shop Number',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      onPressed: _addShopNumber,
+                                      icon: const Icon(Icons.add),
+                                    ),
+                                  ],
+                                ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                children: _shopNumbers.map((shopNumber) {
+                                  return Chip(
+                                    label: Text(shopNumber),
+                                    onDeleted: _isEditing
+                                        ? () => _removeShopNumber(shopNumber)
+                                        : null,
+                                  );
+                                }).toList(),
+                              ),
+                              // if (widget.customer is CreditCustomer) ...[
+                              //   const SizedBox(height: 16),
+                              //   Text(
+                              //     'Current Balance: ₹${(widget.customer as CreditCustomer).currentBalance}',
+                              //     style: GoogleFonts.poppins(
+                              //       fontSize: 16,
+                              //       color: (widget.customer as CreditCustomer)
+                              //                   .currentBalance >
+                              //               0
+                              //           ? Colors.red
+                              //           : Colors.green,
+                              //     ),
+                              //   ),
+                              // ],
+                            ],
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: _addShopNumber,
-                        icon: const Icon(Icons.add),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: _shopNumbers.map((shopNumber) {
-                    return Chip(
-                      label: Text(shopNumber),
-                      onDeleted: _isEditing
-                          ? () => _removeShopNumber(shopNumber)
-                          : null,
-                    );
-                  }).toList(),
-                ),
-                if (widget.customer is CreditCustomer) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Current Balance: ₹${(widget.customer as CreditCustomer).currentBalance}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      color:
-                          (widget.customer as CreditCustomer).currentBalance > 0
-                              ? Colors.red
-                              : Colors.green,
                     ),
-                  ),
-                ],
-              ],
+                    CustomPricesTab(
+                      canteenId: widget.canteenId,
+                      customer: widget.customer,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

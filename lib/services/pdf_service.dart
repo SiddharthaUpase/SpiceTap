@@ -8,6 +8,7 @@ import 'package:open_file/open_file.dart';
 import '../models/order_models.dart';
 import '../models/credit_customer.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class PdfService {
   Future<void> generateOrdersReport({
@@ -420,19 +421,28 @@ class PdfService {
         ),
       );
 
-      // For web, use blob and download
-      final bytes = await pdf.save();
-      final blob = html.Blob([bytes], 'application/pdf');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement()
-        ..href = url
-        ..style.display = 'none'
-        ..download =
-            'orders_report_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      html.document.body?.children.add(anchor);
-      anchor.click();
-      html.document.body?.children.remove(anchor);
-      html.Url.revokeObjectUrl(url);
+      if (kIsWeb) {
+        // For web, use blob and download
+        final bytes = await pdf.save();
+        final blob = html.Blob([bytes], 'application/pdf');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement()
+          ..href = url
+          ..style.display = 'none'
+          ..download =
+              'orders_report_${DateTime.now().millisecondsSinceEpoch}.pdf';
+        html.document.body?.children.add(anchor);
+        anchor.click();
+        html.document.body?.children.remove(anchor);
+        html.Url.revokeObjectUrl(url);
+      } else {
+        // For desktop (Windows, macOS)
+        final output = await getApplicationDocumentsDirectory();
+        final file = File(
+            '${output.path}/orders_report_${DateTime.now().millisecondsSinceEpoch}.pdf');
+        await file.writeAsBytes(await pdf.save());
+        await OpenFile.open(file.path);
+      }
     } catch (e) {
       print('Error generating PDF: $e');
       rethrow;

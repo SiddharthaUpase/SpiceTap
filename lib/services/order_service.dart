@@ -16,12 +16,17 @@ class OrderService {
     required String customerId,
     required List<CartItem> cartItems,
     required PaymentStatus paymentStatus,
+    Map<String, double>? customPrices,
   }) async {
     try {
-      // Calculate total amount
+      // Calculate total amount using custom prices if available
       final totalAmount = cartItems.fold<double>(
         0,
-        (sum, item) => sum + (item.menuItem.basePrice * item.quantity),
+        (sum, item) {
+          final price =
+              customPrices?[item.menuItem.id] ?? item.menuItem.basePrice;
+          return sum + (price * item.quantity);
+        },
       );
 
       // Begin transaction
@@ -37,14 +42,16 @@ class OrderService {
 
       final orderId = response['id'];
 
-      // Insert order items
+      // Insert order items with custom prices if available
       for (var item in cartItems) {
+        final pricePerUnit =
+            customPrices?[item.menuItem.id] ?? item.menuItem.basePrice;
         await _client.from(_orderItemsTable).insert({
           'order_id': orderId,
           'menu_item_id': item.menuItem.id,
           'quantity': item.quantity,
-          'price_per_unit': item.menuItem.basePrice,
-          'total_price': item.menuItem.basePrice * item.quantity,
+          'price_per_unit': pricePerUnit,
+          'total_price': pricePerUnit * item.quantity,
         });
       }
 
@@ -140,6 +147,36 @@ class OrderService {
       }).eq('id', orderId);
     } catch (e) {
       throw Exception('Failed to cancel order: $e');
+    }
+  }
+
+  // Delete orders within a date range
+  Future<void> deleteOrdersInDateRange(
+      String canteenId, DateTime startDate, DateTime endDate) async {
+    try {
+      // Add time to make it inclusive of the entire day
+      final start =
+          DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+      final end =
+          DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+
+      await _client
+          .from(_ordersTable)
+          .delete()
+          .eq('canteen_id', canteenId)
+          .gte('created_at', start.toIso8601String())
+          .lte('created_at', end.toIso8601String());
+    } catch (e) {
+      throw Exception('Failed to delete orders: $e');
+    }
+  }
+
+  // Delete a single order
+  Future<void> deleteOrder(String orderId) async {
+    try {
+      await _client.from(_ordersTable).delete().eq('id', orderId);
+    } catch (e) {
+      throw Exception('Failed to delete order: $e');
     }
   }
 }

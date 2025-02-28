@@ -335,7 +335,7 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      if (true) // Change to false before production
+                      if (false) // Change to false before production
                         TextButton.icon(
                           onPressed: () {
                             _phoneController.text = '9822421417';

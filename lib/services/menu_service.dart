@@ -146,4 +146,15 @@ class MenuService {
       rethrow;
     }
   }
+
+  Future<List<MenuCategory>> getMenuCategories(String canteenId) async {
+    final response = await _supabase
+        .from('menu_categories')
+        .select()
+        .eq('canteen_id', canteenId);
+
+    return (response as List)
+        .map((json) => MenuCategory.fromJson(json))
+        .toList();
+  }
 }

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../main.dart'
-    show getUserData, clearUserData; // Import the helper functions
+import '../../main.dart' show getUserData, clearUserData;
 import '../menu/menu_page.dart';
 import '../quick_menu/quick_menu_page.dart';
 import '../customers/customers_page.dart';
-import '../orders/orders_page.dart'; // Import the Orders page
+import '../orders/orders_page.dart';
+import '../sales/sales_page.dart';
+import '../bills/bills_page.dart';
+import '../settings/canteen_settings_page.dart';
+import 'dart:math' as math;
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -116,10 +119,15 @@ class _DashboardPageState extends State<DashboardPage>
       selectedIcon: Icons.bar_chart,
     ),
     NavigationItem(
-      title: 'Users',
-      icon: Icons.manage_accounts_outlined,
-      selectedIcon: Icons.manage_accounts,
+      title: 'Bills',
+      icon: Icons.receipt_long_outlined,
+      selectedIcon: Icons.receipt_long,
     ),
+    // NavigationItem(
+    //   title: 'Users',
+    //   icon: Icons.manage_accounts_outlined,
+    //   selectedIcon: Icons.manage_accounts,
+    // ),
     NavigationItem(
       title: 'Settings',
       icon: Icons.settings_outlined,
@@ -144,13 +152,22 @@ class _DashboardPageState extends State<DashboardPage>
         content = QuickMenuPage(canteenId: _canteenId);
         break;
       case 1:
-        content = OrdersPage(canteenId: _canteenId); // Add Orders page
+        content = OrdersPage(canteenId: _canteenId);
         break;
       case 2:
         content = MenuPage(canteenId: _canteenId);
         break;
       case 3:
         content = CustomersPage(canteenId: _canteenId);
+        break;
+      case 4:
+        content = SalesPage(canteenId: _canteenId);
+        break;
+      case 5:
+        content = BillsPage(canteenId: _canteenId);
+        break;
+      case 6: // Settings tab
+        content = CanteenSettingsPage(canteenId: _canteenId);
         break;
       default:
         content = Center(
@@ -168,7 +185,7 @@ class _DashboardPageState extends State<DashboardPage>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
 
     return Scaffold(
       body: Row(
@@ -200,6 +217,18 @@ class _DashboardPageState extends State<DashboardPage>
                             ),
                           ),
                           const Spacer(),
+                        ] else ...[
+                          Expanded(
+                            child: Text(
+                              'ST',
+                              style: GoogleFonts.poppins(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ],
                         IconButton(
                           onPressed: () {

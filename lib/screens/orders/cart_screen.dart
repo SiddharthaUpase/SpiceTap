@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as provider;
 import '../../models/order_models.dart';
 import '../../providers/cart_provider.dart';
 import '../../services/customer_service.dart';
 import '../../services/order_service.dart';
+import '../../services/customer_price_service.dart';
 import '../../models/customer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -24,6 +25,8 @@ class _CartScreenState extends State<CartScreen> {
   final CustomerService _customerService =
       CustomerService(Supabase.instance.client);
   final OrderService _orderService = OrderService(Supabase.instance.client);
+  final CustomerPriceService _customerPriceService =
+      CustomerPriceService(Supabase.instance.client);
 
   List<Customer> _customers = [];
   Customer? _selectedCustomer;
@@ -55,6 +58,26 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
+  Future<void> _loadCustomPrices(String customerId) async {
+    try {
+      final customPrices = await _customerPriceService.getCustomPrices(
+        canteenId: widget.canteenId,
+        customerId: customerId,
+      );
+
+      if (mounted) {
+        provider.Provider.of<CartProvider>(context, listen: false)
+            .setCustomPrices(customPrices);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading custom prices: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _createOrder(PaymentStatus paymentStatus) async {
     if (_selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -63,7 +86,7 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
-    final cart = Provider.of<CartProvider>(context, listen: false);
+    final cart = provider.Provider.of<CartProvider>(context, listen: false);
     if (cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cart is empty')),
@@ -81,6 +104,8 @@ class _CartScreenState extends State<CartScreen> {
         customerId: _selectedCustomer!.id,
         cartItems: cart.items,
         paymentStatus: paymentStatus,
+        customPrices: Map.fromEntries(cart.items.map((item) => MapEntry(
+            item.menuItem.id, cart.getEffectivePrice(item.menuItem.id)))),
       );
 
       // Clear the cart after successful order
@@ -88,7 +113,7 @@ class _CartScreenState extends State<CartScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Order created successfully')),
+          const SnackBar(content: Text('Order created successfully')),
         );
         Navigator.pop(context, order);
       }
@@ -208,7 +233,7 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cart = Provider.of<CartProvider>(context);
+    final cart = provider.Provider.of<CartProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -259,6 +284,9 @@ class _CartScreenState extends State<CartScreen> {
                             setState(() {
                               _selectedCustomer = value;
                             });
+                            if (value != null) {
+                              _loadCustomPrices(value.id);
+                            }
                           },
                         ),
                       ),
@@ -288,75 +316,182 @@ class _CartScreenState extends State<CartScreen> {
                           itemCount: cart.items.length,
                           itemBuilder: (context, index) {
                             final item = cart.items[index];
+                            final hasCustomPrice =
+                                cart.hasCustomPrice(item.menuItem.id);
+                            final effectivePrice =
+                                cart.getEffectivePrice(item.menuItem.id);
+                            final basePrice =
+                                cart.getBasePrice(item.menuItem.id);
+
                             return Card(
                               margin: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 8,
                               ),
-                              child: ListTile(
-                                leading: Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    image: const DecorationImage(
-                                      image: AssetImage('assets/images/pc.jpg'),
-                                      fit: BoxFit.cover,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ListTile(
+                                    leading: Container(
+                                      width: 50,
+                                      height: 50,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        image: const DecorationImage(
+                                          image: AssetImage(
+                                              'assets/images/pc.jpg'),
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                    title: Row(
+                                      children: [
+                                        Text(
+                                          item.menuItem.name,
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        if (hasCustomPrice) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context)
+                                                  .primaryColor
+                                                  .withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: Theme.of(context)
+                                                    .primaryColor
+                                                    .withOpacity(0.2),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.local_offer,
+                                                  size: 14,
+                                                  color: Theme.of(context)
+                                                      .primaryColor,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Custom Price',
+                                                  style: GoogleFonts.poppins(
+                                                    fontSize: 12,
+                                                    color: Theme.of(context)
+                                                        .primaryColor,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        if (hasCustomPrice) ...[
+                                          Text(
+                                            'Base Price: ₹${basePrice.toStringAsFixed(2)}',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                              decoration:
+                                                  TextDecoration.lineThrough,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                        ],
+                                        Text(
+                                          '₹${effectivePrice.toStringAsFixed(2)} × ${item.quantity}',
+                                          style: GoogleFonts.poppins(),
+                                        ),
+                                      ],
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '₹${(effectivePrice * item.quantity).toStringAsFixed(2)}',
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        IconButton(
+                                          icon: const Icon(
+                                              Icons.remove_circle_outline),
+                                          onPressed: () {
+                                            cart.removeItem(item.menuItem.id);
+                                          },
+                                        ),
+                                        Text(
+                                          '${item.quantity}',
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                              Icons.add_circle_outline),
+                                          onPressed: () {
+                                            cart.addItem(item.menuItem);
+                                          },
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.delete_outline,
+                                            color: Colors.red[400],
+                                          ),
+                                          onPressed: () {
+                                            cart.removeItemCompletely(
+                                                item.menuItem.id);
+                                          },
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                                title: Text(
-                                  item.menuItem.name,
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  '₹${item.menuItem.basePrice.toStringAsFixed(2)} × ${item.quantity}',
-                                  style: GoogleFonts.poppins(),
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '₹${item.totalPrice.toStringAsFixed(2)}',
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.w600,
+                                  if (hasCustomPrice)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 16,
+                                        right: 16,
+                                        bottom: 8,
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          TextButton.icon(
+                                            onPressed: () =>
+                                                cart.toggleCustomPrice(
+                                                    item.menuItem.id),
+                                            icon: const Icon(Icons.price_change,
+                                                size: 16),
+                                            label: Text(
+                                              'Use Base Price',
+                                              style: GoogleFonts.poppins(
+                                                  fontSize: 12),
+                                            ),
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Theme.of(context)
+                                                  .primaryColor,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(width: 16),
-                                    IconButton(
-                                      icon: const Icon(
-                                          Icons.remove_circle_outline),
-                                      onPressed: () {
-                                        cart.removeItem(item.menuItem.id);
-                                      },
-                                    ),
-                                    Text(
-                                      '${item.quantity}',
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon:
-                                          const Icon(Icons.add_circle_outline),
-                                      onPressed: () {
-                                        cart.addItem(item.menuItem);
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.delete_outline,
-                                        color: Colors.red[400],
-                                      ),
-                                      onPressed: () {
-                                        cart.removeItemCompletely(
-                                            item.menuItem.id);
-                                      },
-                                    ),
-                                  ],
-                                ),
+                                ],
                               ),
                             );
                           },

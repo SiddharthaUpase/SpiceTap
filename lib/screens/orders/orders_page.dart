@@ -219,8 +219,7 @@ class _OrdersPageState extends State<OrdersPage> {
     try {
       await _pdfService.generateOrdersReport(
         orders: _filteredOrders,
-        canteenName:
-            'SpiceTap Canteen', // You might want to get this from your app state
+        canteenName: 'SpiceTap Canteen',
         startDate:
             _startDate ?? DateTime.now().subtract(const Duration(days: 7)),
         endDate: _endDate ?? DateTime.now(),
@@ -231,6 +230,229 @@ class _OrdersPageState extends State<OrdersPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error generating PDF: $e')),
         );
+      }
+    }
+  }
+
+  Future<void> _showDeleteOrdersDialog() async {
+    DateTimeRange? selectedRange;
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                'Delete Orders',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Select date range of orders to delete:',
+                    style: GoogleFonts.poppins(),
+                  ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: () async {
+                      final pickedRange = await showDateRangePicker(
+                        context: context,
+                        initialDateRange: selectedRange ??
+                            DateTimeRange(
+                              start: DateTime.now()
+                                  .subtract(const Duration(days: 7)),
+                              end: DateTime.now(),
+                            ),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: ColorScheme.light(
+                                primary: Theme.of(context).primaryColor,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (pickedRange != null) {
+                        setState(() {
+                          selectedRange = pickedRange;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              selectedRange == null
+                                  ? 'Select Date Range'
+                                  : '${DateFormat('MMM d, y').format(selectedRange!.start)} - ${DateFormat('MMM d, y').format(selectedRange!.end)}',
+                              style: GoogleFonts.poppins(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Warning: This action cannot be undone!',
+                    style: GoogleFonts.poppins(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.poppins(),
+                  ),
+                ),
+                TextButton(
+                  onPressed: selectedRange == null
+                      ? null
+                      : () => Navigator.pop(context, true),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    disabledForegroundColor: Colors.grey,
+                  ),
+                  child: Text(
+                    'Delete',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed == true && selectedRange != null) {
+      try {
+        await _orderService.deleteOrdersInDateRange(
+          widget.canteenId,
+          selectedRange!.start,
+          selectedRange!.end,
+        );
+        await _loadOrders(); // Refresh the orders list
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Successfully deleted orders from ${DateFormat('MMM d, y').format(selectedRange!.start)} to ${DateFormat('MMM d, y').format(selectedRange!.end)}',
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting orders: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteOrder(Order order) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Delete Order',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Are you sure you want to delete this order?',
+                style: GoogleFonts.poppins(),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Order #${order.id.substring(0, 8)}',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+              ),
+              Text(
+                'Customer: ${order.customer?.name ?? 'Unknown'}',
+                style: GoogleFonts.poppins(),
+              ),
+              Text(
+                'Amount: ₹${order.totalAmount.toStringAsFixed(2)}',
+                style: GoogleFonts.poppins(),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Warning: This action cannot be undone!',
+                style: GoogleFonts.poppins(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: Text(
+                'Delete',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        await _orderService.deleteOrder(order.id);
+        await _loadOrders(); // Refresh the orders list
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Successfully deleted order #${order.id.substring(0, 8)}'),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting order: $e')),
+          );
+        }
       }
     }
   }
@@ -255,6 +477,12 @@ class _OrdersPageState extends State<OrdersPage> {
             onPressed: _printOrdersReport,
             icon: const Icon(Icons.print),
             tooltip: 'Print Orders Report',
+          ),
+          // Debug button
+          IconButton(
+            onPressed: _showDeleteOrdersDialog,
+            icon: const Icon(Icons.delete_forever),
+            tooltip: 'Debug: Delete Recent Orders',
           ),
         ],
       ),
@@ -511,34 +739,56 @@ class _OrdersPageState extends State<OrdersPage> {
                                               ],
                                             ),
                                           ),
-                                          // Payment status badge
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: order.paymentStatus ==
-                                                      PaymentStatus.paid
-                                                  ? Colors.green[50]
-                                                  : Colors.orange[50],
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              order.paymentStatus ==
-                                                      PaymentStatus.paid
-                                                  ? 'Paid'
-                                                  : 'Pending',
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                                color: order.paymentStatus ==
-                                                        PaymentStatus.paid
-                                                    ? Colors.green[700]
-                                                    : Colors.orange[700],
+                                          // Payment status badge and delete button
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: order.paymentStatus ==
+                                                          PaymentStatus.paid
+                                                      ? Colors.green[50]
+                                                      : Colors.orange[50],
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  order.paymentStatus ==
+                                                          PaymentStatus.paid
+                                                      ? 'Paid'
+                                                      : 'Pending',
+                                                  style: GoogleFonts.poppins(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                    color:
+                                                        order.paymentStatus ==
+                                                                PaymentStatus
+                                                                    .paid
+                                                            ? Colors.green[700]
+                                                            : Colors
+                                                                .orange[700],
+                                                  ),
+                                                ),
                                               ),
-                                            ),
+                                              const SizedBox(width: 8),
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.delete_outline,
+                                                  color: Colors.red[400],
+                                                  size: 20,
+                                                ),
+                                                onPressed: () =>
+                                                    _deleteOrder(order),
+                                                tooltip: 'Delete Order',
+                                                padding: EdgeInsets.zero,
+                                                constraints:
+                                                    const BoxConstraints(),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),

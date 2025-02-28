@@ -208,6 +208,7 @@ class _CustomersPageState extends State<CustomersPage> {
       context: context,
       builder: (context) => CustomerDetailsDialog(
         customer: customer,
+        canteenId: widget.canteenId,
         onCustomerUpdated: (updatedCustomer) {
           setState(() {
             final index =
@@ -289,17 +290,17 @@ class _CustomersPageState extends State<CustomersPage> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (customer is CreditCustomer) ...[
-                                Text(
-                                  'Balance: ₹${customer.currentBalance}',
-                                  style: GoogleFonts.poppins(
-                                    color: customer.currentBalance > 0
-                                        ? Colors.red
-                                        : Colors.green,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                              ],
+                              // if (customer is CreditCustomer) ...[
+                              //   Text(
+                              //     'Balance: ₹${customer.currentBalance}',
+                              //     style: GoogleFonts.poppins(
+                              //       color: customer.currentBalance > 0
+                              //           ? Colors.red
+                              //           : Colors.green,
+                              //     ),
+                              //   ),
+                              //   const SizedBox(width: 16),
+                              // ],
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined),
                                 onPressed: () => _showCustomerDetails(customer),

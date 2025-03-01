@@ -145,12 +145,12 @@ class _SalesPageState extends State<SalesPage> {
         ),
         Row(
           children: [
-            OutlinedButton.icon(
-              onPressed: _generateDummyData,
-              icon: const Icon(Icons.data_array),
-              label: const Text('Generate Test Data'),
-            ),
-            const SizedBox(width: 16),
+            // OutlinedButton.icon(
+            //   onPressed: _generateDummyData,
+            //   icon: const Icon(Icons.data_array),
+            //   label: const Text('Generate Test Data'),
+            // ),
+            // const SizedBox(width: 16),
             DropdownButton<String>(
               value: _selectedTimeframe,
               items: ['Today', 'This Week', 'This Month', 'This Year']

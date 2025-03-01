@@ -184,19 +184,45 @@ class _CustomerDetailsDialogState extends State<CustomerDetailsDialog> {
                 child: TabBarView(
                   children: [
                     SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
                       child: Form(
                         key: _formKey,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Text(
+                              'Basic Information',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             TextFormField(
                               controller: _nameController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Name',
-                                border: OutlineInputBorder(),
+                                hintText: 'Enter customer name',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                filled: !_isEditing,
+                                fillColor: _isEditing ? null : Colors.white,
+                                labelStyle: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                                floatingLabelStyle: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                ),
                               ),
                               enabled: _isEditing,
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight:
+                                    !_isEditing ? FontWeight.w500 : null,
+                              ),
                               validator: (value) => value?.isEmpty == true
                                   ? 'Name is required'
                                   : null,
@@ -204,21 +230,62 @@ class _CustomerDetailsDialogState extends State<CustomerDetailsDialog> {
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _phoneController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Phone Number',
-                                border: OutlineInputBorder(),
+                                hintText: 'Enter phone number',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                filled: !_isEditing,
+                                fillColor: _isEditing ? null : Colors.white,
+                                labelStyle: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                                floatingLabelStyle: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                ),
                               ),
                               enabled: _isEditing,
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight:
+                                    !_isEditing ? FontWeight.w500 : null,
+                              ),
                             ),
                             if (widget.customer is CreditCustomer) ...[
+                              const SizedBox(height: 32),
+                              Text(
+                                'Company Information',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _companyNameController,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   labelText: 'Company Name',
-                                  border: OutlineInputBorder(),
+                                  hintText: 'Enter company name',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  filled: !_isEditing,
+                                  fillColor: _isEditing ? null : Colors.white,
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                  floatingLabelStyle: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                  ),
                                 ),
                                 enabled: _isEditing,
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight:
+                                      !_isEditing ? FontWeight.w500 : null,
+                                ),
                                 validator: (value) => value?.isEmpty == true
                                     ? 'Company name is required'
                                     : null,
@@ -226,88 +293,131 @@ class _CustomerDetailsDialogState extends State<CustomerDetailsDialog> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _ownerRepNumberController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Owner/Representative Number',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText:
+                                      'Owner/Representative Number (Optional)',
+                                  hintText:
+                                      'Enter owner or representative number',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  filled: !_isEditing,
+                                  fillColor: _isEditing ? null : Colors.white,
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                  floatingLabelStyle: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                  ),
                                 ),
                                 enabled: _isEditing,
-                                validator: (value) => value?.isEmpty == true
-                                    ? 'Owner/Representative number is required'
-                                    : null,
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight:
+                                      !_isEditing ? FontWeight.w500 : null,
+                                ),
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _creditLimitController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Credit Limit',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: 'Credit Limit (Optional)',
+                                  hintText: 'Enter credit limit',
                                   prefixText: '₹ ',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  filled: !_isEditing,
+                                  fillColor: _isEditing ? null : Colors.white,
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                  floatingLabelStyle: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                  ),
                                 ),
                                 enabled: _isEditing,
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight:
+                                      !_isEditing ? FontWeight.w500 : null,
+                                ),
                                 keyboardType: TextInputType.number,
                                 validator: (value) {
-                                  if (value?.isEmpty == true)
-                                    return 'Credit limit is required';
+                                  if (value?.isEmpty == true) {
+                                    return null;
+                                  }
                                   if (double.tryParse(value!) == null) {
                                     return 'Please enter a valid number';
                                   }
                                   return null;
                                 },
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 32),
                               Text(
                                 'Shop Numbers',
                                 style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).primaryColor,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 16),
                               if (_isEditing)
                                 Row(
                                   children: [
                                     Expanded(
                                       child: TextFormField(
                                         controller: _shopNumberController,
-                                        decoration: const InputDecoration(
+                                        decoration: InputDecoration(
                                           labelText: 'Add Shop Number',
-                                          border: OutlineInputBorder(),
+                                          hintText:
+                                              'Enter shop number and press Enter',
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
                                         ),
+                                        onFieldSubmitted: (_) =>
+                                            _addShopNumber(),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     IconButton(
                                       onPressed: _addShopNumber,
                                       icon: const Icon(Icons.add),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor:
+                                            Theme.of(context).primaryColor,
+                                        foregroundColor: Colors.white,
+                                      ),
                                     ),
                                   ],
                                 ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                children: _shopNumbers.map((shopNumber) {
-                                  return Chip(
-                                    label: Text(shopNumber),
-                                    onDeleted: _isEditing
-                                        ? () => _removeShopNumber(shopNumber)
-                                        : null,
-                                  );
-                                }).toList(),
-                              ),
-                              // if (widget.customer is CreditCustomer) ...[
-                              //   const SizedBox(height: 16),
-                              //   Text(
-                              //     'Current Balance: ₹${(widget.customer as CreditCustomer).currentBalance}',
-                              //     style: GoogleFonts.poppins(
-                              //       fontSize: 16,
-                              //       color: (widget.customer as CreditCustomer)
-                              //                   .currentBalance >
-                              //               0
-                              //           ? Colors.red
-                              //           : Colors.green,
-                              //     ),
-                              //   ),
-                              // ],
+                              const SizedBox(height: 16),
+                              if (_shopNumbers.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    border:
+                                        Border.all(color: Colors.grey[300]!),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: _shopNumbers.map((shopNumber) {
+                                      return Chip(
+                                        label: Text(shopNumber),
+                                        onDeleted: _isEditing
+                                            ? () =>
+                                                _removeShopNumber(shopNumber)
+                                            : null,
+                                        backgroundColor: Colors.grey[100],
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
                             ],
                           ],
                         ),

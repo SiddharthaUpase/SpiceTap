@@ -217,18 +217,6 @@ class _DashboardPageState extends State<DashboardPage>
                             ),
                           ),
                           const Spacer(),
-                        ] else ...[
-                          Expanded(
-                            child: Text(
-                              'ST',
-                              style: GoogleFonts.poppins(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).primaryColor,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
                         ],
                         IconButton(
                           onPressed: () {

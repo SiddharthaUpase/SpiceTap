@@ -101,12 +101,14 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   void _showAddItemDialog([MenuCategory? category]) {
+    // If no category is selected, don't pass any initial category
     showDialog(
       context: context,
       builder: (context) => AddMenuItemDialog(
         canteenId: widget.canteenId,
         categories: _categories,
-        initialCategory: category,
+        // Only pass category if it's not the "All" selection
+        initialCategory: _selectedCategory,
         onItemAdded: (item) {
           setState(() => _menuItems.add(item));
         },
@@ -128,6 +130,12 @@ class _MenuPageState extends State<MenuPage> {
               _categories[existingIndex] = category;
             } else {
               _categories.add(category);
+            }
+            // Ensure we keep the current category selected or default to "All"
+            if (_selectedCategory?.id == category.id) {
+              _selectedCategory = category;
+            } else if (_selectedCategory == null) {
+              _selectedCategory = null; // This will show "All" as selected
             }
           });
         },
@@ -528,6 +536,11 @@ class _MenuPageState extends State<MenuPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Ensure a category is always selected (null means "All" is selected)
+    if (_selectedCategory != null && !_categories.contains(_selectedCategory)) {
+      _selectedCategory = null;
+    }
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -566,23 +579,24 @@ class _MenuPageState extends State<MenuPage> {
                     ),
                   ),
                 ),
-              const SizedBox(width: 8),
-              PopupMenuButton(
-                icon: const Icon(Icons.bug_report),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    child: const Text('Add Sample Items'),
-                    onTap: _addDebugItems,
-                  ),
-                  PopupMenuItem(
-                    child: const Text(
-                      'Delete All Items',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                    onTap: _deleteAllItems,
-                  ),
-                ],
-              ),
+
+              // const SizedBox(width: 8),
+              // PopupMenuButton(
+              //   icon: const Icon(Icons.bug_report),
+              //   itemBuilder: (context) => [
+              //     PopupMenuItem(
+              //       child: const Text('Add Sample Items'),
+              //       onTap: _addDebugItems,
+              //     ),
+              //     PopupMenuItem(
+              //       child: const Text(
+              //         'Delete All Items',
+              //         style: TextStyle(color: Colors.red),
+              //       ),
+              //       onTap: _deleteAllItems,
+              //     ),
+              //   ],
+              // ),
             ],
           ),
         ),

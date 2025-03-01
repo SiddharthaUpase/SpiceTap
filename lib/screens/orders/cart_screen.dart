@@ -7,6 +7,7 @@ import '../../services/customer_service.dart';
 import '../../services/order_service.dart';
 import '../../services/customer_price_service.dart';
 import '../../models/customer.dart';
+import '../../models/credit_customer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CartScreen extends StatefulWidget {
@@ -265,28 +266,126 @@ class _CartScreenState extends State<CartScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: DropdownButtonFormField<Customer>(
-                          value: _selectedCustomer,
-                          decoration: const InputDecoration(
-                            labelText: 'Select Customer',
-                            border: OutlineInputBorder(),
-                          ),
-                          hint: const Text('Select a customer'),
-                          items: _customers.map((customer) {
-                            return DropdownMenuItem(
-                              value: customer,
-                              child: Text(
-                                '${customer.name ?? 'Unknown'} (${customer.customerType.toString().split('.').last})',
+                        child: Autocomplete<Customer>(
+                          displayStringForOption: (Customer customer) {
+                            if (customer is CreditCustomer) {
+                              final shopNumber = customer.shopNumbers.isNotEmpty
+                                  ? ' (${customer.shopNumbers.first})'
+                                  : '';
+                              return '${customer.companyName}$shopNumber';
+                            }
+                            return customer.name ?? 'Walk-in Customer';
+                          },
+                          optionsBuilder: (TextEditingValue textEditingValue) {
+                            if (textEditingValue.text.isEmpty) {
+                              return _customers;
+                            }
+                            final query = textEditingValue.text.toLowerCase();
+                            return _customers.where((customer) {
+                              // Search by name
+                              final nameMatch = customer.name
+                                      ?.toLowerCase()
+                                      .contains(query) ??
+                                  false;
+
+                              // Search by shop number and company name for credit customers
+                              bool shopNumberMatch = false;
+                              bool companyNameMatch = false;
+                              if (customer is CreditCustomer) {
+                                shopNumberMatch = customer.shopNumbers.any(
+                                  (shopNumber) =>
+                                      shopNumber.toLowerCase().contains(query),
+                                );
+                                companyNameMatch = customer.companyName
+                                    .toLowerCase()
+                                    .contains(query);
+                              }
+
+                              return nameMatch ||
+                                  shopNumberMatch ||
+                                  companyNameMatch;
+                            }).toList();
+                          },
+                          onSelected: (Customer customer) {
+                            setState(() {
+                              _selectedCustomer = customer;
+                            });
+                            _loadCustomPrices(customer.id);
+                          },
+                          fieldViewBuilder: (context, textEditingController,
+                              focusNode, onFieldSubmitted) {
+                            return TextFormField(
+                              controller: textEditingController,
+                              focusNode: focusNode,
+                              decoration: InputDecoration(
+                                labelText: 'Search Customer',
+                                hintText: 'Enter name, company, or shop number',
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.search),
+                                suffixIcon:
+                                    textEditingController.text.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.clear),
+                                            onPressed: () {
+                                              textEditingController.clear();
+                                              setState(() {
+                                                _selectedCustomer = null;
+                                              });
+                                            },
+                                          )
+                                        : null,
                               ),
                             );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedCustomer = value;
-                            });
-                            if (value != null) {
-                              _loadCustomPrices(value.id);
-                            }
+                          },
+                          optionsViewBuilder: (context, onSelected, options) {
+                            return Align(
+                              alignment: Alignment.topLeft,
+                              child: Material(
+                                elevation: 4,
+                                child: ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(maxHeight: 200),
+                                  child: ListView.builder(
+                                    padding: EdgeInsets.zero,
+                                    shrinkWrap: true,
+                                    itemCount: options.length,
+                                    itemBuilder: (context, index) {
+                                      final customer = options.elementAt(index);
+                                      return ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor:
+                                              Theme.of(context).primaryColor,
+                                          child: Icon(
+                                            customer.customerType ==
+                                                    CustomerType.credit
+                                                ? Icons.business
+                                                : Icons.person,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        title: Text(
+                                          customer is CreditCustomer
+                                              ? customer.companyName
+                                              : (customer.name ??
+                                                  'Walk-in Customer'),
+                                          style: GoogleFonts.poppins(),
+                                        ),
+                                        subtitle: customer is CreditCustomer
+                                            ? Text(
+                                                customer.shopNumbers.isNotEmpty
+                                                    ? 'Shop: ${customer.shopNumbers.first} • ${customer.name ?? ''}'
+                                                    : customer.name ?? '',
+                                                style: GoogleFonts.poppins(
+                                                    fontSize: 12),
+                                              )
+                                            : null,
+                                        onTap: () => onSelected(customer),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            );
                           },
                         ),
                       ),

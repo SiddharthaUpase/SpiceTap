@@ -140,29 +140,23 @@ class _AddCustomerDialogState extends State<AddCustomerDialog> {
                 TextFormField(
                   controller: _ownerRepNumberController,
                   decoration: const InputDecoration(
-                    labelText: 'Owner/Rep Number',
+                    labelText: 'Owner/Rep Number (Optional)',
                     hintText: 'Enter owner or representative number',
                   ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) {
-                      return 'Please enter owner/rep number';
-                    }
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 16),
 
                 TextFormField(
                   controller: _creditLimitController,
                   decoration: const InputDecoration(
-                    labelText: 'Credit Limit',
+                    labelText: 'Credit Limit (Optional)',
                     hintText: 'Enter credit limit',
                     prefixText: '₹ ',
                   ),
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value?.isEmpty ?? true) {
-                      return 'Please enter credit limit';
+                      return null; // Optional field
                     }
                     if (double.tryParse(value!) == null) {
                       return 'Please enter a valid number';
@@ -182,6 +176,7 @@ class _AddCustomerDialogState extends State<AddCustomerDialog> {
                           labelText: 'Shop Number',
                           hintText: 'Enter shop number',
                         ),
+                        onFieldSubmitted: (_) => _addShopNumber(),
                       ),
                     ),
                     const SizedBox(width: 8),

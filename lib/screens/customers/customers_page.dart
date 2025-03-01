@@ -240,13 +240,13 @@ class _CustomersPageState extends State<CustomersPage> {
                 ),
               ),
               const Spacer(),
-              // Add Test Data Button
-              OutlinedButton.icon(
-                onPressed: _addDummyData,
-                icon: const Icon(Icons.data_array),
-                label: const Text('Add Test Data'),
-              ),
-              const SizedBox(width: 8),
+              // // Add Test Data Button
+              // OutlinedButton.icon(
+              //   onPressed: _addDummyData,
+              //   icon: const Icon(Icons.data_array),
+              //   label: const Text('Add Test Data'),
+              // ),
+              // const SizedBox(width: 8),
               FilledButton.icon(
                 onPressed: _showAddCustomerDialog,
                 icon: const Icon(Icons.add),

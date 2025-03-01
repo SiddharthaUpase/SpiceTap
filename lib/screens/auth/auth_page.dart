@@ -80,6 +80,7 @@ class _AuthPageState extends State<AuthPage> {
         setState(() => _errorMessage = result['message']);
       }
     } catch (e) {
+      print("Error: $e");
       setState(() => _errorMessage = 'An error occurred');
     } finally {
       if (mounted) {

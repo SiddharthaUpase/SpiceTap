@@ -86,9 +86,13 @@ class AuthService {
         'full_name': fullName,
       }).select();
 
+      //create a session token a uuid
+      final sessionToken = Uuid().v4();
+
       return {
         'success': true,
         'user': response[0],
+        'token': sessionToken,
       };
     } catch (e) {
       return {

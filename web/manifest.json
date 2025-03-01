@@ -1,11 +1,11 @@
 {
-    "name": "spice_tap",
-    "short_name": "spice_tap",
+    "name": "SpiceTap",
+    "short_name": "SpiceTap",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FF5722",
+    "theme_color": "#FF5722",
+    "description": "SpiceTap - Your Digital Canteen Management Solution",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
